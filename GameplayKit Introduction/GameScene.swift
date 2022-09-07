@@ -38,11 +38,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     override func didMove(to view: SKView) {
         
-        // Adding Component
+        
+        // Adding Componentt
         let flash = FlashingComponent()
         flash.nodeToFlash = playerNode
         flash.startFlashing()
         playerNode.entity?.addComponent(flash)
+//        teste
         
         /* Scene setup */
         self.addChild(worldNode)
