@@ -37,5 +37,12 @@ class PlayerNode: SKShapeNode {
             }
         }
     }
+    
+    var stateMachine: GKStateMachine!
+     
+    @objc func enterNormalState() {
+        self.stateMachine.enter(NormalState.self)
+    }
+    
 }
 

@@ -38,21 +38,23 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     override func didMove(to view: SKView) {
         
-        
         // Adding Component
         let flash = FlashingComponent()
         flash.nodeToFlash = playerNode
         flash.startFlashing()
         playerNode.entity?.addComponent(flash)
         
+        playerNode.stateMachine = GKStateMachine(states: [NormalState(withNode: playerNode), InvulnerableState(withNode: playerNode)])
+        playerNode.stateMachine.enter(NormalState.self)
+        
         /* Scene setup */
         self.addChild(worldNode)
         self.physicsWorld.gravity = CGVector(dx: 0, dy: 0)
         self.physicsWorld.contactDelegate = self
         
-        self.upDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(self.moveUp), userInfo: nil, repeats: true)
-        self.rightDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(self.moveRight), userInfo: nil, repeats: true)
-        self.downDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(self.moveDown), userInfo: nil, repeats: true)
+        self.upDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveUp), userInfo: nil, repeats: true)
+        self.rightDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveRight), userInfo: nil, repeats: true)
+        self.downDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveDown), userInfo: nil, repeats: true)
         self.leftDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveLeft), userInfo: nil, repeats: true)
         
         self.respawnTimer = Timer(timeInterval: 1.0, target: self, selector: #selector(self.respawn), userInfo: nil, repeats: true)
@@ -96,13 +98,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         if contact is PointsNode {
             NotificationCenter.default.post(name: NSNotification.Name(rawValue: "updateScore") , object: self, userInfo: ["score": 1])
         }
-        else if contact is RedEnemyNode {
+        else if contact is RedEnemyNode && playerNode.stateMachine.currentState! is NormalState {
             NotificationCenter.default.post(name: NSNotification.Name(rawValue: "updateScore") , object: self, userInfo: ["score": -2])
+             
+            playerNode.stateMachine.enter(InvulnerableState.self)
+            playerNode.perform(Selector(("enterNormalState")), with: nil, afterDelay: 5.0)
         }
-        else if contact is YellowEnemyNode {
+        else if contact is YellowEnemyNode  && playerNode.stateMachine.currentState! is NormalState  {
             self.playerNode.enabled = false
         }
-        
+         
         contact.removeFromParent()
     }
     
@@ -148,7 +153,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     func endMoveUp() {
         self.upDisplayTimer.invalidate()
-        self.upDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(self.moveUp), userInfo: nil, repeats: true)
+        self.upDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveUp), userInfo: nil, repeats: true)
     }
     
     @objc func moveUp() {
@@ -164,7 +169,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     func endMoveRight() {
         self.rightDisplayTimer.invalidate()
-        self.rightDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(self.moveRight), userInfo: nil, repeats: true)
+        self.rightDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveRight), userInfo: nil, repeats: true)
     }
     
     @objc func moveRight() {
@@ -180,7 +185,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     func endMoveDown() {
         self.downDisplayTimer.invalidate()
-        self.downDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(self.moveDown), userInfo: nil, repeats: true)
+        self.downDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveDown), userInfo: nil, repeats: true)
     }
     
     @objc func moveDown() {
@@ -196,7 +201,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     func endMoveLeft() {
         self.leftDisplayTimer.invalidate()
-        self.leftDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(self.moveLeft), userInfo: nil, repeats: true)
+        self.leftDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveLeft), userInfo: nil, repeats: true)
     }
     
     @objc func moveLeft() {

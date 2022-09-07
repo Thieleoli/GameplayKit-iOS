@@ -1,5 +1,5 @@
 //
-//  InvulnerableState.swift
+//  NormalState.swift
 //  GameplayKit Introduction
 //
 //  Created by Thiele Oliveira on 07/09/22.
@@ -10,7 +10,7 @@ import UIKit
 import GameplayKit
 import SpriteKit
 
-class InvulnerableState: GKState {
+class NormalState: GKState {
 
     var node: PlayerNode
          
@@ -20,7 +20,7 @@ class InvulnerableState: GKState {
          
     override func isValidNextState(_ stateClass: AnyClass) -> Bool {
             switch stateClass {
-            case is NormalState.Type:
+            case is InvulnerableState.Type:
                 return true
                  
             default:
@@ -29,12 +29,10 @@ class InvulnerableState: GKState {
         }
          
     override func didEnter(from previousState: GKState?) {
-            if let _ = previousState as? NormalState {
-                // Adding Component
-                let flash = FlashingComponent()
-                flash.nodeToFlash = node
-                flash.startFlashing()
-                node.entity?.addComponent(flash)
+            if let _ = previousState as? InvulnerableState {
+                node.entity?.removeComponent(ofType: FlashingComponent.self)
+                node.run(SKAction.fadeIn(withDuration: 0.5))
             }
         }
+    
 }
