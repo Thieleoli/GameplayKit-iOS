@@ -52,10 +52,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.physicsWorld.gravity = CGVector(dx: 0, dy: 0)
         self.physicsWorld.contactDelegate = self
         
-        self.upDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveUp), userInfo: nil, repeats: true)
-        self.rightDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveRight), userInfo: nil, repeats: true)
-        self.downDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveDown), userInfo: nil, repeats: true)
-        self.leftDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveLeft), userInfo: nil, repeats: true)
+        self.upDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(self.moveUp), userInfo: nil, repeats: true)
+        self.rightDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(self.moveRight), userInfo: nil, repeats: true)
+        self.downDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(self.moveDown), userInfo: nil, repeats: true)
+        self.leftDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(self.moveLeft), userInfo: nil, repeats: true)
         
         self.respawnTimer = Timer(timeInterval: 1.0, target: self, selector: #selector(self.respawn), userInfo: nil, repeats: true)
         RunLoop.main.add(self.respawnTimer, forMode: RunLoop.Mode.common)
@@ -156,7 +156,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.upDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveUp), userInfo: nil, repeats: true)
     }
     
-    @objc func moveUp() {
+    @objc func moveUp() { //movimentar para cima
         let action = SKAction.moveBy(x: 0, y: 10, duration: 0.0)
         if self.playerNode.enabled {
             self.playerNode.run(action)
@@ -172,7 +172,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.rightDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveRight), userInfo: nil, repeats: true)
     }
     
-    @objc func moveRight() {
+    @objc func moveRight() { //movimentar para direita
         let action = SKAction.moveBy(x: 10, y: 0, duration: 0.0)
         if self.playerNode.enabled {
             self.playerNode.run(action)
@@ -188,7 +188,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.downDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveDown), userInfo: nil, repeats: true)
     }
     
-    @objc func moveDown() {
+    @objc func moveDown() { //movimentar para baixo
         let action = SKAction.moveBy(x: 0, y: -10, duration: 1.0/60.0)
         if self.playerNode.enabled {
             self.playerNode.run(action)
@@ -204,7 +204,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.leftDisplayTimer = Timer(timeInterval: 1.0/60.0, target: self, selector: #selector(moveLeft), userInfo: nil, repeats: true)
     }
     
-    @objc func moveLeft() {
+    @objc func moveLeft() {  //movimentar para esquerda
         let action = SKAction.moveBy(x: -10, y: 0, duration: 1.0/60.0)
         if self.playerNode.enabled {
             self.playerNode.run(action)

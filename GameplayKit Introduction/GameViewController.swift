@@ -57,8 +57,8 @@ class GameViewController: UIViewController {
 
 
     // MARK: Button Movements
-    @IBAction func beginMovement(sender: UIButton) {
-        switch sender.tag {
+    @IBAction func beginMovement(_ sender: Any) {
+        switch (sender as AnyObject).tag {
         case 1:
             self.mainScene.startMoveUp()
         case 2:
@@ -71,9 +71,9 @@ class GameViewController: UIViewController {
             break
         }
     }
-    
-    @IBAction func endMovement(sender: UIButton) {
-        switch sender.tag {
+
+    @IBAction func endMovement(_ sender: Any) {
+        switch (sender as AnyObject).tag {
         case 1:
             self.mainScene.endMoveUp()
         case 2:
