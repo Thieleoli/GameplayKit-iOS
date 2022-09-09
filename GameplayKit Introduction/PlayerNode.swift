@@ -10,17 +10,36 @@ import UIKit
 import SpriteKit
 import GameplayKit
 
-class PlayerNode: SKShapeNode {
+class PlayerNode: SKShapeNode, GKAgentDelegate {
+    
+    let player = Player()
+    
     
     override init() {
         super.init()
-        self.entity = Player()
+        self.entity = player
     }
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
+    
+    var agent = GKAgent2D()
+     
+    //  MARK: Agent Delegate
+    func agentWillUpdate(_ agent: GKAgent) {
+        if let agent2D = agent as? GKAgent2D {
+            agent2D.position = float2(Float(position.x), Float(position.y))
+            
+        }
+    }
+     
+    func agentDidUpdate(_ agent: GKAgent) {
+        if let agent2D = agent as? GKAgent2D {
+            self.position = CGPoint(x: CGFloat(agent2D.position.x), y: CGFloat(agent2D.position.y))
+        }
+    }
     
     var enabled = true {
         didSet {

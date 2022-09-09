@@ -9,10 +9,13 @@
 import SpriteKit
 import GameplayKit
 
-class GameScene: SKScene, SKPhysicsContactDelegate {
+class GameScene: SKScene {
     
     let worldNode = SKNode()
     let cameraNode = SKCameraNode()
+    
+    var agents: [GKAgent2D] = []
+    var lastUpdateTime: CFTimeInterval = 0.0
     
     let playerNode = PlayerNode(circleOfRadius: 50)
     
@@ -24,26 +27,33 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var respawnTimer: Timer!
     
     let spawnPoints = [
-        CGPoint(x: 245, y: 3900),
-        CGPoint(x: 700, y: 3500),
-        CGPoint(x: 1250, y: 1500),
-        CGPoint(x: 1200, y: 1950),
-        CGPoint(x: 1200, y: 2450),
-        CGPoint(x: 1200, y: 2950),
-        CGPoint(x: 1200, y: 3400),
-        CGPoint(x: 2550, y: 2350),
-        CGPoint(x: 2500, y: 3100),
-        CGPoint(x: 3000, y: 2400),
-    ]
+            CGPoint(x: 245, y: 3900),
+            CGPoint(x: 700, y: 3500),
+            CGPoint(x: 1250, y: 1500),
+            CGPoint(x: 1200, y: 1950),
+            CGPoint(x: 1200, y: 2450),
+            CGPoint(x: 1200, y: 2950),
+            CGPoint(x: 1200, y: 3400),
+            CGPoint(x: 2550, y: 2350),
+            CGPoint(x: 2500, y: 3100),
+            CGPoint(x: 3000, y: 2400),
+            CGPoint(x: 2048, y: 2400),
+            CGPoint(x: 2200, y: 2200)
+        ]
+    
+    var graph: GKObstacleGraph<GKGraphNode2D>!
     
     override func didMove(to view: SKView) {
+        
+        let obstacles = SKNode.obstacles(fromNodePhysicsBodies: self.children)
+        graph = GKObstacleGraph(obstacles: obstacles, bufferRadius: 0.0)
         
         // Adding Component
         let flash = FlashingComponent()
         flash.nodeToFlash = playerNode
         flash.startFlashing()
         playerNode.entity?.addComponent(flash)
-        
+                
         playerNode.stateMachine = GKStateMachine(states: [NormalState(withNode: playerNode), InvulnerableState(withNode: playerNode)])
         playerNode.stateMachine.enter(NormalState.self)
         
@@ -68,6 +78,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         playerNode.fillColor = UIColor.blue
         playerNode.lineWidth = 0.0
         
+        playerNode.entity?.addComponent(playerNode.agent)
+        playerNode.agent.delegate = playerNode
+        
         let playerBody = SKPhysicsBody(circleOfRadius: 50)
         playerBody.contactTestBitMask = 1
         playerNode.physicsBody = playerBody
@@ -79,40 +92,27 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     override func update(_ currentTime: CFTimeInterval) {
         /* Called before each frame is rendered */
         self.camera?.position = playerNode.position
-    }
-    
-    //  MARK: Physics Delegate
-    func didBeginContact(contact: SKPhysicsContact) {
-        let nodeA = contact.bodyA.node
-        let nodeB = contact.bodyB.node
         
-        if let contact = nodeA as? ContactNode, nodeB! is PlayerNode {
-            self.handleContactWithNode(contact: contact)
+        if self.lastUpdateTime == 0 {
+            lastUpdateTime = currentTime
         }
-        else if let contact = nodeB as? ContactNode, nodeA! is PlayerNode {
-            self.handleContactWithNode(contact: contact)
+        
+        let delta = currentTime - lastUpdateTime
+        lastUpdateTime = currentTime
+        
+        playerNode.agent.update(deltaTime: delta)
+        
+        for agent in agents {
+            agent.update(deltaTime: delta)
         }
-    }
-    
-    func handleContactWithNode(contact: ContactNode) {
-        if contact is PointsNode {
-            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "updateScore") , object: self, userInfo: ["score": 1])
-        }
-        else if contact is RedEnemyNode && playerNode.stateMachine.currentState! is NormalState {
-            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "updateScore") , object: self, userInfo: ["score": -2])
-             
-            playerNode.stateMachine.enter(InvulnerableState.self)
-            playerNode.perform(Selector(("enterNormalState")), with: nil, afterDelay: 5.0)
-        }
-        else if contact is YellowEnemyNode  && playerNode.stateMachine.currentState! is NormalState  {
-            self.playerNode.enabled = false
-        }
-         
-        contact.removeFromParent()
     }
     
     //  MARK: Respawning Behaviour
     func initialSpawn() {
+        
+        let endNode = GKGraphNode2D(point: float2(x: 2048.0, y: 2048.0))
+        self.graph.connectUsingObstacles(node: endNode)
+        
         for point in self.spawnPoints {
             let respawnFactor = arc4random() % 3  //  Will produce a value between 0 and 2 (inclusive)
             
@@ -135,12 +135,52 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 break
             }
             
+            print(node?.entity)
+            if let entity = node?.value(forKey: "entity") as? GKEntity,
+               let agent = node?.value(forKey: "agent") as? GKAgent2D, respawnFactor != 0 {
+
+                entity.addComponent(agent)
+                agent.delegate = node as? ContactNode
+                agent.position = float2(x: Float(point.x), y: Float(point.y))
+                agents.append(agent)
+
+                /*let behavior = GKBehavior(goal: GKGoal(toSeekAgent: playerNode.agent), weight: 1.0)
+                agent.behavior = behavior*/
+
+                /* BEGIN PATHFINDING  */
+                let startNode = GKGraphNode2D(point: agent.position)
+                self.graph.connectUsingObstacles(node: startNode)
+
+                let pathNodes = self.graph.findPath(from: startNode, to: endNode) as! [GKGraphNode2D]
+
+                if !pathNodes.isEmpty {
+                    let path = GKPath(graphNodes: pathNodes, radius: 1.0)
+
+                    let followPath = GKGoal(toFollow: path, maxPredictionTime: 1.0, forward: true)
+                    let stayOnPath = GKGoal(toStayOn: path, maxPredictionTime: 1.0)
+
+                    let behavior = GKBehavior(goals: [followPath, stayOnPath])
+                    agent.behavior = behavior
+                }
+
+                self.graph.remove([startNode])
+                /* END PATHFINDING */
+
+                agent.mass = 0.01
+                agent.maxSpeed = 50
+                agent.maxAcceleration = 1000
+            }
+
             node!.position = point
             node!.strokeColor = UIColor.clear
             node!.physicsBody!.contactTestBitMask = 1
             self.addChild(node!)
         }
+
+        self.graph.remove([endNode])
+        
     }
+        
     
     @objc func respawn() {
         
@@ -210,4 +250,37 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             self.playerNode.run(action)
         }
     }
+}
+
+extension GameScene: SKPhysicsContactDelegate{
+    //  MARK: Physics Delegate
+    func didBeginContact(contact: SKPhysicsContact) {
+        let nodeA = contact.bodyA.node
+        let nodeB = contact.bodyB.node
+        
+        if let contact = nodeA as? ContactNode, nodeB! is PlayerNode {
+            self.handleContactWithNode(contact: contact)
+        }
+        else if let contact = nodeB as? ContactNode, nodeA! is PlayerNode {
+            self.handleContactWithNode(contact: contact)
+        }
+    }
+    
+    func handleContactWithNode(contact: ContactNode) {
+        if contact is PointsNode {
+            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "updateScore") , object: self, userInfo: ["score": 1])
+        }
+        else if contact is RedEnemyNode && playerNode.stateMachine.currentState! is NormalState {
+            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "updateScore") , object: self, userInfo: ["score": -2])
+            
+            playerNode.stateMachine.enter(InvulnerableState.self)
+            playerNode.perform(Selector(("enterNormalState")), with: nil, afterDelay: 5.0)
+        }
+        else if contact is YellowEnemyNode  && playerNode.stateMachine.currentState! is NormalState  {
+            self.playerNode.enabled = false
+        }
+        
+        contact.removeFromParent()
+    }
+
 }
